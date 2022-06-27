@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outer</title>
+
+    <style>
+        input {
+            margin: 5px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <login-form />
+    </div>
+
+    <script src="https://unpkg.com/vue@3.2.29/dist/vue.global.js"></script>
+    <script>
+        let app = Vue.createApp({
+
+        })
+
+        app.component('login-form', {
+            template: `
+                <form @submit.prevent="handleSubmit">
+                    <h1>{{title}}</h1>
+                    <custom-input v-model="email" :label="emailLabel" 
+                    custom="custom prop without using Vuejs directive"/><br>
+                    <custom-input v-model="password" :label="passwordLabel" 
+                    custom="custom prop without using vuejs directive"/><br>
+                    <button type="submit">Login</button>
+                </form>
+            `,
+            components: ['custom-input'],  // registering components which would be used in this component
+            data() {
+                return {
+                    title: 'Login Form',
+                    email: '',
+                    password: '',
+                    emailLabel: 'Email',
+                    passwordLabel: 'Password'
+                }
+            },
+            methods: {
+                handleSubmit(){
+                    console.log('submitted')
+                    console.log('Email: ' + this.email)
+                    console.log('Password: ' + this.password)
+                }
+            },
+        })
+
+        app.component('custom-input', {
+            template: `
+                <label>
+                    {{label}} {{custom}}
+                    <input type="text" v-model="inputValue">
+                </label>
+            `,
+            props: ['label', 'custom', 'modelValue'],  // these props are from parent component
+            computed: {
+                inputValue: {  // this key is an variable
+                    get(){
+                        return this.modelValue  // return value of "modelValue" when get value of "inputValue"
+                    },
+                    set(valueOfInput){
+                        // emit an event called "update" whenever value of "inputValue" changes
+                        // and pass that value to "modelValue"
+                        this.$emit("update:modelValue", valueOfInput)
+                    }
+                }
+            }
+            // data() {
+            //     return {
+            //         inputValue:''
+            //     }
+            // },
+        })
+
+        app.mount('#app')
+    </script>
+</body>
+
+</html>

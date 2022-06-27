@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Splendid Food</title>
+  <link rel="stylesheet" href="styles/style.min.css">
+  <link rel="icon" href="../public/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="../public/favicon.ico" type="image/ico">
+
+  <style>
+    [v-cloak] {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app" v-cloak>
+
+    <header class="top-bar spread">
+      <nav class="top-bar-nav">
+        <a href="#" class="top-bar-link">
+          <i class="icofont-spoon-and-fork"></i>
+          <span>Home</span>
+        </a>
+        <a href="views/products.html" class="top-bar-link">
+          <span>Products</span>
+        </a>
+        <a href="views/past-orders.html" class="top-bar-link">
+          <span>Past Orders</span>
+        </a>
+      </nav>
+      <a href="#" class="top-bar-cart-link" @click="toggleSidebar">
+        <i class="icofont-cart-alt icofont-1x"></i>
+        <span>Cart ({{totalQuantity}})</span>
+      </a>
+    </header>
+
+    <div class="splash-container">
+      <div class="splash">
+        <h1>Splendid Food</h1>
+      </div>
+    </div>
+
+    <main class="wrapper">
+
+      <h2>Recommended</h2>
+
+      <div class="recommended">
+
+        <div class="card" v-for="(item, index) in inventory.slice(0, 3)" :key="item.id">
+          <div class="card-title">
+            {{item.name}}
+          </div>
+          <div class="card-body">
+            <i class="icofont-10x icofont-{{item.icon}}"></i>
+            <form>
+              <div class="row">
+                <div class="cell">
+                  <label>Type:</label>
+                </div>
+                <div class="cell">
+                  <em>{{item.type}}</em>
+                </div>
+              </div>
+              <div class="row">
+                <div class="cell">
+                  <label>Price:</label>
+                </div>
+                <div class="cell">
+                  ${{(item.price.USD).toFixed(2)}}
+                </div>
+              </div>
+              <div class="row">
+                <div class="cell">
+                  <label>Quantity:</label>
+                </div>
+                <div class="cell">
+                  <input type="number" v-model.number="item.quantity">
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="card-footer">
+            <button @click="addToCart(item.name, index)" class="btn btn-light">
+              Add to cart
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <sidebar v-if="isShowSidebar" 
+    :show="isShowSidebar" @update-show-sidebar="isShowSidebar = false"
+    :toggle="toggleSidebar" 
+    :cart="cart" 
+    :inventory-types:cart-total="totalQuantity"
+    :inventory="inventory" 
+    :remove-product="removeProduct">
+    </sidebar>
+
+    <footer>
+    </footer>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3.2.29/dist/vue.global.js"></script>
+  <script>
+    const app = Vue.createApp({
+      component: ['sidebar'],
+      data() {
+        return {
+          inventory: [],
+          cart: {},
+          isShowSidebar: true
+        }
+      },
+      methods: {
+        addToCart(name, index) {
+          if (!isNaN(this.inventory[index].quantity) ) {
+            if (!this.cart[name]) {
+              this.cart[name] = 0
+            }
+            this.cart[name] += this.inventory[index].quantity
+            this.inventory[index].quantity = 0
+          }
+        },
+        toggleSidebar() {
+          this.isShowSidebar = !this.isShowSidebar
+        },
+        removeProduct(name){
+          delete this.cart[name]
+        }
+      },
+      computed: {
+        totalQuantity: {
+          get() {
+            let totalProduct = Object.values(this.cart).reduce((sum, quantity, index) => {
+              return sum + quantity
+            }, 0)
+            return totalProduct
+          }
+        }
+      },
+      async mounted() {
+        const res = await fetch('./food.json')
+        const data = await res.json()
+        this.inventory = data
+      },
+    })
+
+    app.component('sidebar', {
+      template: `
+                    <aside class="cart-container">
+                    <div class="cart">
+                      <h1 class="cart-title spread">
+                        <span>
+                          Cart
+                          <i class="icofont-cart-alt icofont-1x"></i>
+                        </span>
+                        <button class="cart-close" @click="toggle">&times;</button>
+                      </h1>
+
+                      <div class="cart-body">
+                        <table class="cart-table">
+                          <thead>
+                            <tr>
+                              <th><span class="sr-only">Product Image</span></th>
+                              <th>Product</th>
+                              <th>Price</th>
+                              <th>Quantity</th>
+                              <th>Total</th>
+                              <th><span class="sr-only">Actions</span></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="(quantity, name, index) in cart" :key="index">
+                              <td><i class="icofont-carrot icofont-3x"></i></td>
+                              <td>{{name}}</td>
+                              <td>\${{getPrice(name)}}</td>
+                              <td class="center">{{quantity}}</td>
+                              <td>\${{calculatePrice(name, quantity).toFixed(2)}}</td>
+                              <td class="center">
+                                <button @click="removeProduct(name)" class="btn btn-light cart-remove">
+                                  &times;
+                                </button>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        <p class="center" v-if="!Object.keys(cart).length"><em>No item in cart</em></p>
+                        <div class="spread">
+                          <span><strong>Total:</strong> \${{calculateTotalPrice()}}</span>
+                          <button class="btn btn-light">Checkout</button>
+                        </div>
+                      </div>
+                    </div>
+                  </aside>
+                `
+      ,
+      data() {
+        return {
+        }
+      },
+      props: ['show', 'toggle', 'cart', 'cartTotal', 'inventory', 'removeProduct'],
+      computed: {
+        
+      },
+      methods: {
+        closeSidebar() {
+          this.$emit("updateShowSidebar")
+        },
+        getPrice(name){
+          let product = this.inventory.find(item=>{
+            return item.name === name
+          })
+          return product.price.USD
+        },
+        calculatePrice(name, quantity){
+          return this.getPrice(name)*quantity
+        },
+        calculateTotalPrice(){
+          const totalPrice = Object.entries(this.cart).reduce((sum, key_value, index) => {
+            return sum + key_value[1] * this.getPrice(key_value[0])
+          }, 0)
+          return totalPrice.toFixed(2)
+        }
+      },
+    })
+
+    app.mount('#app')
+  </script>
+</body>
+
+</html>
